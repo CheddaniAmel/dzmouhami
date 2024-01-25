@@ -2,10 +2,6 @@
 
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
-
-
-
-from django.db import models
 from django.contrib.auth.models import AbstractBaseUser,PermissionsMixin,BaseUserManager
 ##
 
@@ -65,14 +61,16 @@ class Client(AbstractBaseUser,PermissionsMixin):
         verbose_name = 'Client'
         verbose_name_plural = 'Clients'
 
-#
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
 
+#
+        
 class Langue(models.Model):
     name = models.CharField(max_length=200,unique = True,primary_key = True )
 
 class specialisation(models.Model):
     name = models.CharField(max_length=200,unique = True,primary_key = True )
-
 
 class Avocat(models.Model):
     nom = models.CharField(max_length=100)
@@ -108,7 +106,7 @@ class Avis(models.Model):
     rating = models.IntegerField(default=0)
 
     def __str__(self):
-        return f"Avis de {self.client.nom} sur {self.avocat.nom}"
+        return f"Avis de {self.client.first_name} sur {self.avocat.nom}"
 
 class RendezVous(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE)
@@ -116,4 +114,4 @@ class RendezVous(models.Model):
     date = models.DateTimeField()
 
     def __str__(self):
-        return f"Rendez-vous chez {self.avocat.nom} avec {self.client.nom} le {self.date}"
+        return f"Rendez-vous chez {self.avocat.nom} avec {self.client.last_name} le {self.date}"

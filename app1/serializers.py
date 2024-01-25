@@ -11,7 +11,7 @@ class ClientSignUpSerializer(serializers.ModelSerializer):
         fields = ['email', 'first_name', 'last_name', 'mobile', 'password']
 
     def create(self, validated_data):
-        user = Client.objects.create_user(
+        user = Client.objects._create_user(
             email=validated_data['email'],
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],

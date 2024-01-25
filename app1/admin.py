@@ -10,3 +10,5 @@ admin.site.register(Blog)
 admin.site.register(RendezVous)
 admin.site.register(specialisation)
 admin.site.register(Langue)
+admin.site.register(Avis)
+

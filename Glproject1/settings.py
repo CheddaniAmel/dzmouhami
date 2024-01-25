@@ -76,6 +76,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'Glproject1.wsgi.application'
 
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # Make sure ModelBackend is included
+]
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
