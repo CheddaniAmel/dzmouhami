@@ -76,10 +76,10 @@ class Avocat(models.Model):
     nom = models.CharField(max_length=100)
     prenom = models.CharField(max_length=100)
     adresse = models.TextField()
-    numero_tlfn = models.CharField(max_length=20)
+    numero_tlfn = models.CharField(max_length=20,null = True)
     specialisation = models.ManyToManyField(specialisation, blank=True)
-    email = models.EmailField(unique=True)
-    langue =models.ManyToManyField(Langue, blank=True)
+    email = models.EmailField(null=True)
+    langue =models.ManyToManyField(Langue, blank=True, default="frensh")
 
     def __str__(self):
         return f"{self.nom} {self.prenom}"
