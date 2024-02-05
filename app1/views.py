@@ -5,7 +5,8 @@ from .serializers import ProfilAvocatSerializer ,ClientSignUpSerializer,AvisSeri
 from rest_framework.response import Response
 from rest_framework import status 
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from geopy.geocoders import Nominatim
 from rest_framework import generics
@@ -18,6 +19,8 @@ from rest_framework.generics import ListAPIView
 
 # ajouter rdv 
 @api_view(['POST'])
+#always have both these included in the post request views 
+@authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def addRDV(request):
     # Parse input data
@@ -89,6 +92,7 @@ def user_login(request):
 
 
 @api_view(['POST'])
+@authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
 def add_avis_to_profilavocat(request, profilavocat_id):
     try:
@@ -106,31 +110,43 @@ def add_avis_to_profilavocat(request, profilavocat_id):
         serializer_data['client'] = request.user.id
         
         serializer = AvisSerializer(data=serializer_data)
-        
-        if serializer.is_valid():
+
+        if serializer.is_valid(): #the problem is inside heere I think
             # Check if the client has already provided a review for this lawyer
             existing_avis = Avis.objects.filter(client=request.user, avocat=profil_avocat.avocat)
             if existing_avis.exists():
-                return Response({"error": "You have already provided a review for this lawyer"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "You have already provided a review for this lawyer"}, status=status.HTTP_409_CONFLICT) # GPT suggested this for ur case
 
             # Save the new review
-            serializer.save(avocat=profil_avocat.avocat)
+            try:
+                serializer.save(avocat=profil_avocat.avocat)
+            except Exception as exc:
+                print(exc)
+                
 
             # You might want to update the overall rating of the lawyer's profile based on this new review.
             # You can implement this logic in your models or serializers.
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+        print("serializer invalid")
+        print(serializer.errors)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 
 @api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def Trusted_lawyers(request):
-    avocat = ProfilAvocat.objects.order_by('-rating')[:3]
+    avocat = ProfilAvocat.objects.order_by('-rating')[:5]
     serializer = ProfilAvocatSerializer(avocat, many =True) 
     return Response(serializer.data)
 
 
 @api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+
 def get_highest_rated_avis(request):
     # Get the Avis with the highest rating
     highest_rated_avis = Avis.objects.order_by('-rating').first()
@@ -140,6 +156,7 @@ def get_highest_rated_avis(request):
 
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def signup(request):
     serializer = ClientSignUpSerializer(data=request.data)
 
@@ -150,6 +167,7 @@ def signup(request):
         token = Token.objects.create(user=user)
         return Response({'token': token.key, 'user': serializer.data}, 
                         status=status.HTTP_201_CREATED)
+    print(serializer.errors)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
   
@@ -158,11 +176,16 @@ def signup(request):
 @permission_classes([IsAuthenticated])
 def user_logout(request):
     logout(request)
+    # u need to invalidate the token here btw
     return JsonResponse({'message': 'Logout successful'})
 
 
 
 #start funct filtering
+
+#@api_view(['GET'])
+#@authentication_classes([TokenAuthentication])
+#@permission_classes([IsAuthenticated])
 class ProfilAvocatFilter(django_filters.FilterSet):
     specialisation__name = django_filters.CharFilter(field_name='avocat__specialisation__name', lookup_expr='icontains')
     langue__name = django_filters.CharFilter(field_name='avocat__langue__name', lookup_expr='icontains')
@@ -187,6 +210,10 @@ class ProfilAvocatListView(ListAPIView):
         # Filter the queryset based on the entered_adresse
         queryset = queryset.filter(avocat__adresse__icontains=entered_adresse)
         return queryset
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 #finish filtering
     
 
